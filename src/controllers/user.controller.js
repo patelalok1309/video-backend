@@ -1,11 +1,11 @@
-import { asyncHanlder } from '../utils/asyncHandler.js'
+import { asyncHandler } from '../utils/asyncHandler.js'
 import { User } from '../models/user.model.js'
 import { uploadOnCloudinary } from '../utils/cloudinary.js';
 import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 
 // Handle user registration 
-const registerUser = asyncHanlder(async (req, res) => {
+const registerUser = asyncHandler(async (req, res) => {
 
     const { fullName, email, username, password } = req.body
 
@@ -68,10 +68,9 @@ const registerUser = asyncHanlder(async (req, res) => {
 
 
 // Handle user login, access token and refresh tokens 
-const loginUser = asyncHanlder(async (req, res) => {
+const loginUser = asyncHandler(async (req, res) => {
 
     const { username, email, password } = req.body;
-
     if (!(username || email)) {
         throw new ApiError(400, "username or email is required");
     }
@@ -117,13 +116,12 @@ const loginUser = asyncHanlder(async (req, res) => {
 
 })
 
-const logOutUser = asyncHanlder(async (req, res) => {
-
+const logOutUser = asyncHandler(async(req, res) => {
     await User.findByIdAndUpdate(
         req.user._id,
         {
-            $set: {
-                refreshToken: undefined,
+            $unset: {
+                refreshToken: 1 // this removes the field from document
             }
         },
         {
@@ -133,15 +131,14 @@ const logOutUser = asyncHanlder(async (req, res) => {
 
     const options = {
         httpOnly: true,
-        secure: true,
+        secure: true
     }
 
     return res
-        .status(200)
-        .clearCookie("accessToken", options)
-        .clearCookie("refreshToken", options)
-        .json(new ApiResponse(200, {}, "User logout Successfully"));
-
+    .status(200)
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
+    .json(new ApiResponse(200, {}, "User logged Out"))
 })
 
 
@@ -149,16 +146,15 @@ const logOutUser = asyncHanlder(async (req, res) => {
 const generateAccessAndRefreshTokens = async (userId) => {
 
     try {
-        const user = await User.find(userId);
 
-        const accessToken = user.generateAccessToken();
-        const refreshToken = user.generateRefreshToken();
+        const user = await User.findById(userId)
+        const accessToken = user.generateAccessToken()
+        const refreshToken = user.generateRefreshToken()
 
         user.refreshToken = refreshToken
-        await user.save({ validateBeforeSave: false });
+        await user.save({ validateBeforeSave: false })
 
-        return { accessToken, refreshToken };
-
+        return { accessToken, refreshToken }
 
     } catch (error) {
         throw new ApiError(500, 'Something went wrong while generating access and refresh tokens')
