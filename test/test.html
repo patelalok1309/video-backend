@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <form action="http://localhost:8000/api/v1/users/register" method="post" enctype="multipart/form-data">
+
+        <input type="text" name="fullName" id="fullName" placeholder="Enter your fullName">
+        <br>
+        <input type="text" name="username" id="username" placeholder="Enter your username">
+        <br>
+        <input type="email" name="email" id="email" placeholder="Enter your email">
+        <br>
+        <input type="password" name="password" id="password" placeholder="Enter your password">
+        <br>
+        <input type="file" name="avatar" id="avatar" placeholder="Enter your avatar">
+        <br>
+        <input type="file" name="coverImage" id="coverImage" placeholder="Enter your coverImage">
+
+        <input type="submit" value="submit">
+        <br>
+
+
+    </form>
+</body>
+</html>
