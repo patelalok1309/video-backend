@@ -14,6 +14,10 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"))
 app.use(cookieParser())
 
+app.get('/check-health', (req ,res) => {
+    return res.send('Hyy the site is healthy');
+})
+
 
 // Routes imports 
 import userRouter from './routes/user.routes.js'
