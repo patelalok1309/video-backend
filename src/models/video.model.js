@@ -1,5 +1,6 @@
 import mongoose, { Schema } from 'mongoose'
 import mongooseAggregatePaginate from 'mongoose-aggregate-paginate-v2';
+import { unlinkFromCloudinary } from '../utils/cloudinary.js';
 
 
 const videoSchema = new Schema(
@@ -43,5 +44,18 @@ const videoSchema = new Schema(
 )
 
 videoSchema.plugin(mongooseAggregatePaginate)
+
+videoSchema.pre('remove', async function (next) {
+    if (this.thumbnail) {
+        const res = await unlinkFromCloudinary(this.thumbnail);
+        console.log(res);
+    }
+    if (this.videoFile) {
+        const res = await unlinkFromCloudinary(this.videoFile);
+        console.log(res);
+    }
+
+    next();
+})
 
 export const Video = mongoose.model('Video', videoSchema);
