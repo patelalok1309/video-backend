@@ -1,11 +1,10 @@
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { User } from '../models/user.model.js'
-import { uploadOnCloudinary } from '../utils/cloudinary.js';
+import { unlinkFromCloudinary, uploadOnCloudinary } from '../utils/cloudinary.js';
 import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import jwt from 'jsonwebtoken'
 import mongoose from 'mongoose';
-
 
 
 // generate access and refresh tokens 
@@ -283,13 +282,22 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Avatar file is missing")
     }
 
+    const user = await User.findById(req.user?._id);
+
+    // delete existing user avatar from the cloudinary 
+    const isDeleted = unlinkFromCloudinary(user.avatar);
+
+    if (!isDeleted) {
+        throw new ApiError(500, "something went wrong while deleting asset from cloudinary")
+    }
+
     const avatar = await uploadOnCloudinary(avatarLocalPath)
 
     if (!avatar.url) {
         throw new ApiError(400, "Error while uploading on avatar")
     }
 
-    const user = await User.findByIdAndUpdate(
+    const updatedUser = await User.findByIdAndUpdate(
         req.user?._id,
         {
             $set: {
@@ -299,7 +307,7 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
         { new: true }
     ).select("-password")
 
-    return res.status(200).json(new ApiResponse(200, user, "Avatar updated successfully"))
+    return res.status(200).json(new ApiResponse(200, updatedUser, "Avatar updated successfully"))
 })
 
 
@@ -311,23 +319,31 @@ const updateCoverImage = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Cover image file is missing")
     }
 
+    const user = await User.findById(req.user?._id);
+    const isDeleted = user.coverImage ? unlinkFromCloudinary(user.coverImage) : true;
+
+    if (!isDeleted) {
+        return res.status(500)
+            .json(new ApiError(500, "Something went wrong while deleting coverimage from cloudinary"))
+    }
+
     const coverImage = await uploadOnCloudinary(coverImageLocalPath)
 
     if (!coverImage) {
         throw new ApiError(400, "Cover image file is missing")
     }
 
-    const user = await findByIdAndUpdate(
+    const updatedUser = await User.findByIdAndUpdate(
         req.user?._id,
         {
             $set: {
-                coverImage: coverImage
+                coverImage: coverImage.url
             }
         },
         { new: true }
     ).select("-password")
 
-    return res.status(200, "Cover Image updated successfully");
+    return res.status(200).json(new ApiResponse(200, updatedUser, "Coverimage updated successfully"))
 })
 
 
@@ -421,6 +437,8 @@ const getWatchHistory = asyncHandler(async (req, res) => {
             $match: {
                 _id: new mongoose.Types.ObjectId(req.user?._id),
             },
+        },
+        {
             $lookup: {
                 from: "videos",
                 localField: "watchHistory",
