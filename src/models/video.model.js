@@ -48,11 +48,9 @@ videoSchema.plugin(mongooseAggregatePaginate)
 videoSchema.pre('remove', async function (next) {
     if (this.thumbnail) {
         const res = await unlinkFromCloudinary(this.thumbnail);
-        console.log(res);
     }
     if (this.videoFile) {
         const res = await unlinkFromCloudinary(this.videoFile);
-        console.log(res);
     }
 
     next();

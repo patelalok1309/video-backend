@@ -97,7 +97,6 @@ const unlinkFromCloudinary = async (cloudinaryURL , type = 'image') => {
         await cloudinary.uploader.destroy(public_id , {resource_type : type})
             .then((result) => {
                 if (result !== 'ok') return false;
-                console.log(result);
             })
             .catch(err => console.error(err))
 
