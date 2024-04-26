@@ -51,15 +51,14 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 
         const options = {
             httpOnly: true,
-            secure: true
         }
 
         const { accessToken, newRefreshToken } = await generateAccessAndRefreshTokens(user._id)
 
         return res
             .status(200)
-            .cookie('accessToken', accessToken, options)
-            .cookie('refreshToken', newRefreshToken, options)
+            .cookie('accessToken', accessToken , options)
+            .cookie('refreshToken', newRefreshToken , options)
             .json(new ApiResponse(
                 200,
                 { accessToken, refreshToken: newRefreshToken },
@@ -141,7 +140,6 @@ const loginUser = asyncHandler(async (req, res) => {
     if (!(username || email)) {
         throw new ApiError(400, "username or email is required");
     }
-
     const user = await User.findOne({
         $or: [{ username }, { email }]
     });
@@ -162,13 +160,13 @@ const loginUser = asyncHandler(async (req, res) => {
 
     const options = {
         httpOnly: true,
-        secure: true,
+        // secure: true,
     }
 
     return res
         .status(200)
-        .cookie("accessToken", accessToken, options)
-        .cookie("refreshToken", refreshToken, options)
+        .cookie("accessToken", accessToken)
+        .cookie("refreshToken", refreshToken)
         .json(
             new ApiResponse(
                 200,
@@ -200,7 +198,7 @@ const logOutUser = asyncHandler(async (req, res) => {
 
     const options = {
         httpOnly: true,
-        secure: true
+        // secure: true
     }
 
     return res
@@ -323,8 +321,7 @@ const updateCoverImage = asyncHandler(async (req, res) => {
     const isDeleted = user.coverImage ? unlinkFromCloudinary(user.coverImage) : true;
 
     if (!isDeleted) {
-        return res.status(500)
-            .json(new ApiError(500, "Something went wrong while deleting coverimage from cloudinary"))
+        throw new ApiError(500, "Something went wrong while deleting coverimage from cloudinary");
     }
 
     const coverImage = await uploadOnCloudinary(coverImageLocalPath)
