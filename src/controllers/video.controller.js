@@ -12,57 +12,32 @@ import {
 
 const getAllVideos = asyncHandler(async (req, res) => {
     const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
-    //TODO: get all videos based on query, sort, pagination
 
     const sort = {};
+
     if (sortBy) {
-        sort[sortBy] = sortType;
+        sort[sortBy] = sortType
     }
-    const videoAggregate = Video.aggregate();
 
-    // const matchUserIdPipeline = [
-    //     {
-    //         $match: {
-    //             owner: new mongoose.Types.ObjectId(userId)
-    //         }
-    //     },
-    //     {
-    //         $lookup: {
-    //             from: "users",
-    //             localField: "owner",
-    //             foreignField: "_id",
-    //             as: "owner_details"
-    //         }
-    //     },
-    //     {
-    //         $addFields: {
-    //             owner_details: {
-    //                 $first: "$owner_details"
-    //             }
-    //         }
-    //     }
-    // ]
 
-    // console.log(videoAggregate);
-
-    const option = {
+    const options = {
         page,
         limit,
-    };
+        sort,
+        populate: "owner",
+    }
 
-    const response = await Video.aggregatePaginate(videoAggregate, option)
-        .then((result) => {
-            return res
-                .status(200)
-                .json(new ApiResponse(200, result, "All videos fetched successfully"));
-        })
-        .catch((err) => {
-            throw new ApiError(500, "Something went wrong while fetching videos");
-        });
+    const matchUser = userId ? {
+        owner: {
+            $eq: new mongoose.Types.ObjectId(userId)
+        }
+    } : {}
+
+    const videos = await Video.paginate({}, options);
 
     return res
         .status(200)
-        .json(new ApiResponse(200, response, "All videos fetched successfulyy"));
+        .json(new ApiResponse(200, videos, "All videos fetched successfulyy"));
 });
 
 // Publish new video
@@ -119,39 +94,37 @@ const getVideoById = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Invalid video Id");
     }
 
-    const video = await Video.aggregate(
-        [
-            {
-                $match: {
-                    _id: new mongoose.Types.ObjectId(videoId)
-                }
+    const video = await Video.aggregate([
+        {
+            $match: {
+                _id: new mongoose.Types.ObjectId(videoId),
             },
-            {
-                $lookup: {
-                    from: "users",
-                    localField: "owner",
-                    foreignField: "_id",
-                    as: "ownerDetails"
-                }
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "ownerDetails",
             },
-            {
-                $addFields: {
-                    owner: {
-                        $arrayElemAt: ['$ownerDetails', 0]
-                    }
-                }
+        },
+        {
+            $addFields: {
+                owner: {
+                    $arrayElemAt: ["$ownerDetails", 0],
+                },
             },
-            {
-                $project: {
-                    "owner.password": 0,
-                    "owner.username": 0,
-                    "owner.coverImage": 0,
-                    "owner.watchHistory": 0,
-                    "ownerDetails": 0
-                }
-            }
-        ]
-    );
+        },
+        {
+            $project: {
+                "owner.password": 0,
+                "owner.username": 0,
+                "owner.coverImage": 0,
+                "owner.watchHistory": 0,
+                ownerDetails: 0,
+            },
+        },
+    ]);
 
     if (!video) {
         throw new ApiError(404, "Video resources not found or invalide video Id");
@@ -247,6 +220,33 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, updateVideo, "Video status updated"));
 });
 
+const getVideos = asyncHandler(async (req, res) => {
+    const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
+
+    const sort = {};
+
+    if (sortBy) {
+        sort[sortBy] = sortType
+    }
+
+
+    const options = {
+        page,
+        limit,
+        sort,
+        populate: "owner",
+        options: { owner: userId }
+    }
+
+    const videos = await Video.paginate({
+        owner: {
+            $eq: new mongoose.Types.ObjectId(userId)
+        }
+    }, options);
+
+    return res.status(200).json(new ApiResponse(200, videos, 'fetched'));
+})
+
 export {
     getAllVideos,
     publishAVideo,
@@ -254,4 +254,5 @@ export {
     updateVideo,
     deleteVideo,
     togglePublishStatus,
+    getVideos
 };

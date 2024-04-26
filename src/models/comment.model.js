@@ -4,7 +4,7 @@ import mongoose, { Schema } from 'mongoose'
 const commentSchema = new Schema({
     content: {
         type: String,
-        required: truem
+        required: true
     },
     video: {
         type: mongoose.Types.ObjectId,
