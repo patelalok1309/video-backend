@@ -5,15 +5,33 @@ import { ApiResponse } from "../utils/ApiResponse.js"
 import { asyncHandler } from "../utils/asyncHandler.js"
 
 const getVideoComments = asyncHandler(async (req, res) => {
-    //TODO: get all comments for a video
-    const { videoId } = req.params
-    const { page = 1, limit = 10 } = req.query
+    const { videoId } = req.params;
+    const { page = 1, limit = 10 } = req.query;
 
+    console.log(videoId);
+    const pipeline = {
+        video: {
+            $eq: new mongoose.Types.ObjectId(videoId)
+        }
+    };
+
+    const options = {
+        page,
+        limit
+    };
+
+    const paginatedResult = await Comment.paginate(pipeline, options);
+
+    return res.status(200).json(new ApiResponse(200, paginatedResult, "Comments on video fetched successfully"));
 })
 
-const addComment = asyncHandler(async (req, res) => {
-    const { content, videoId } = req.body;
 
+const addComment = asyncHandler(async (req, res) => {
+    const { content } = req.body;
+    const { videoId } = req.params;
+
+    console.log("content", content);
+    console.log("videoId", videoId);
     if ([content, videoId].some(field => field.trim === "")) {
         throw new ApiError(400, "content or video id is missing!")
     }
@@ -36,15 +54,20 @@ const addComment = asyncHandler(async (req, res) => {
 const updateComment = asyncHandler(async (req, res) => {
     // TODO: update a comment
 
-    const { content, commentId } = req.body;
+    const { content } = req.body;
+    const { commentId } = req.params;
 
-    if ([content, commentId].some(field => field.trim === "")) {
-        throw new ApiError(400, "content or video id is missing!")
-    }
+    console.log(content);
+    console.log(commentId);
+
 
     const updatedComment = await Comment.findByIdAndUpdate(
-        new mongoose.Types.ObjectId(commentId),
-        { content },
+        commentId,
+        {
+            $set: {
+                content: content
+            }
+        },
         { new: true }
     )
 
@@ -60,19 +83,19 @@ const updateComment = asyncHandler(async (req, res) => {
 const deleteComment = asyncHandler(async (req, res) => {
     // TODO: delete a comment
 
-    const { commentId } = req.body;
+    const { commentId } = req.params;
 
-    const res = await Comment.findByIdAndDelete(
+    const deleteResponse = await Comment.findByIdAndDelete(
         commentId,
     )
 
-    if (!res) {
+    if (!deleteResponse) {
         throw new ApiError(404, "comment not found")
     }
 
     return res
         .status(200)
-        .json(new ApiResponse(200, res, "Comment deleted successfully"))
+        .json(new ApiResponse(200, deleteResponse, "Comment deleted successfully"))
 
 })
 
