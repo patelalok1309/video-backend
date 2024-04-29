@@ -1,6 +1,5 @@
 import mongoose, { isValidObjectId } from "mongoose";
 import { Video } from "../models/video.model.js";
-import { User } from "../models/user.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -33,7 +32,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
         }
     } : {}
 
-    const videos = await Video.paginate({}, options);
+    const videos = await Video.paginate(matchUser, options);
 
     return res
         .status(200)
@@ -94,6 +93,9 @@ const getVideoById = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Invalid video Id");
     }
 
+    // update the view count
+    await Video.findByIdAndUpdate(videoId, { $inc: { views: 1 } });
+
     const video = await Video.aggregate([
         {
             $match: {
@@ -126,9 +128,11 @@ const getVideoById = asyncHandler(async (req, res) => {
         },
     ]);
 
+
     if (!video) {
         throw new ApiError(404, "Video resources not found or invalide video Id");
     }
+
 
     return res
         .status(200)
@@ -247,6 +251,16 @@ const getVideos = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, videos, 'fetched'));
 })
 
+const updateVideoViews = asyncHandler(async (req, res) => {
+    const { videoId } = req.params;
+
+    const updatedVideo = await Video.findByIdAndUpdate(videoId, { $inc: { "views": 1 } }, { new: true })
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, updatedVideo, "view added to video"))
+})
+
 export {
     getAllVideos,
     publishAVideo,
@@ -254,5 +268,6 @@ export {
     updateVideo,
     deleteVideo,
     togglePublishStatus,
-    getVideos
+    getVideos,
+    updateVideoViews
 };
