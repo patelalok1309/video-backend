@@ -8,16 +8,24 @@ const getVideoComments = asyncHandler(async (req, res) => {
     const { videoId } = req.params;
     const { page = 1, limit = 10 } = req.query;
 
-    console.log(videoId);
     const pipeline = {
         video: {
             $eq: new mongoose.Types.ObjectId(videoId)
-        }
+        },
     };
+
+    const sort = {};
+
+    sort['createdAt'] = 'desc'
 
     const options = {
         page,
-        limit
+        limit,
+        populate: {
+            path: 'owner',
+            select: '-password'
+        },
+        sort
     };
 
     const paginatedResult = await Comment.paginate(pipeline, options);
@@ -30,8 +38,6 @@ const addComment = asyncHandler(async (req, res) => {
     const { content } = req.body;
     const { videoId } = req.params;
 
-    console.log("content", content);
-    console.log("videoId", videoId);
     if ([content, videoId].some(field => field.trim === "")) {
         throw new ApiError(400, "content or video id is missing!")
     }
@@ -57,10 +63,6 @@ const updateComment = asyncHandler(async (req, res) => {
     const { content } = req.body;
     const { commentId } = req.params;
 
-    console.log(content);
-    console.log(commentId);
-
-
     const updatedComment = await Comment.findByIdAndUpdate(
         commentId,
         {
@@ -70,11 +72,10 @@ const updateComment = asyncHandler(async (req, res) => {
         },
         { new: true }
     )
-
-    if (!updateComment) {
+    
+    if (updatedComment === null) {
         throw new ApiError(404, "comment not found")
     }
-
     return res
         .status(200)
         .json(new ApiResponse(200, updatedComment, "comment updated successfully"))

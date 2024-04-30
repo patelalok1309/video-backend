@@ -57,8 +57,8 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 
         return res
             .status(200)
-            .cookie('accessToken', accessToken , options)
-            .cookie('refreshToken', newRefreshToken , options)
+            .cookie('accessToken', accessToken, options)
+            .cookie('refreshToken', newRefreshToken, options)
             .json(new ApiResponse(
                 200,
                 { accessToken, refreshToken: newRefreshToken },
@@ -106,7 +106,7 @@ const registerUser = asyncHandler(async (req, res) => {
     }
 
 
-   
+
 
     const avatar = await uploadOnCloudinary(avatarLocalPath)
     const coverImage = await uploadOnCloudinary(coverImageLocalPath)

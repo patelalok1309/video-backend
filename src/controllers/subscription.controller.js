@@ -1,5 +1,4 @@
 import mongoose, { isValidObjectId } from "mongoose"
-import { User } from "../models/user.model.js"
 import { Subscription } from "../models/subscription.model.js"
 import { ApiError } from "../utils/ApiError.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
@@ -43,11 +42,11 @@ const toggleSubscription = asyncHandler(async (req, res) => {
             subscriber: req.user?._id,
             channel: channelId
         })
-        return res.status(200).json(new ApiResponse(200, newSubscription, 'subscribed successfully'))
+        return res.status(200).json(new ApiResponse(200, { subscribed: true, newSubscription }, 'subscribed successfully'))
     }
 
     const deleteRes = await Subscription.findByIdAndDelete(subscription._id);
-    return res.status(200).json(new ApiResponse(200, deleteRes, 'un-subscribed successfully'))
+    return res.status(200).json(new ApiResponse(200, { subscribed: false, deleteRes }, 'un-subscribed successfully'))
 
 })
 
@@ -97,8 +96,8 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
 const getSubscribedChannels = asyncHandler(async (req, res) => {
     const { subscriberId } = req.params
 
-    if(!isValidObjectId(subscriberId)){
-        throw new ApiError(400 , "Invalide subscriber Id");
+    if (!isValidObjectId(subscriberId)) {
+        throw new ApiError(400, "Invalide subscriber Id");
     }
 
     const channels = await Subscription.aggregate(

@@ -1,4 +1,4 @@
-import mongoose, { isValidObjectId } from "mongoose"
+import mongoose, { isValidObjectId, mongo } from "mongoose"
 import { Like } from "../models/like.model.js"
 import { ApiError } from "../utils/ApiError.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
@@ -33,10 +33,10 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
             throw new ApiError(500, "Something went wrong while adding like");
         }
 
-        return res.status(200).json(new ApiResponse(200, newLike, "Liked video successfully"));
+        return res.status(200).json(new ApiResponse(200, { likeStatus: true, newLike }, "Liked video successfully"));
     }
 
-    return res.status(200).json(new ApiResponse(200, like, "Unliked video successfully"));
+    return res.status(200).json(new ApiResponse(200, { likeStatus: false, like }, "Unliked video successfully"));
 
 })
 
@@ -120,7 +120,7 @@ const getLikedVideos = asyncHandler(async (req, res) => {
     //TODO: get all liked videos
 
     const userId = req.user?._id;
-    
+
     const likedVideos = await Like.aggregate(
         [
             {
@@ -151,9 +151,27 @@ const getLikedVideos = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, likedVideos, "Liked videos fetched successfully"))
 })
 
+
+const isVideoLikedByUser = asyncHandler(async (req, res) => {
+
+    const userId = req.user?._id;
+    const { videoId } = req.params;
+
+    const isLiked = await Like.findOne({
+        likedBy: new mongoose.Types.ObjectId(userId),
+        video: new mongoose.Types.ObjectId(videoId)
+    })
+
+    if (!isLiked) {
+        return res.status(200).json(new ApiResponse(200, { liked: false, isLiked }, "user wasn't liked videos"))
+    }
+    return res.status(200).json(new ApiResponse(200, { liked: true, isLiked }, "user liked videos"))
+})
+
 export {
     toggleCommentLike,
     toggleTweetLike,
     toggleVideoLike,
-    getLikedVideos
+    getLikedVideos,
+    isVideoLikedByUser
 }

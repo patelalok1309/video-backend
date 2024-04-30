@@ -10,10 +10,10 @@ import {
 } from "../utils/cloudinary.js";
 
 const getAllVideos = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
+    const { page = 1, limit = 10, sortBy, sortType = 'desc', userId, search } = req.query;
 
     const sort = {};
-    
+
     if (sortBy) {
         sort[sortBy] = sortType
     }
@@ -25,13 +25,22 @@ const getAllVideos = asyncHandler(async (req, res) => {
         populate: "owner",
     }
 
-    const matchUser = userId ? {
+    const query = userId ? {
         owner: {
             $eq: new mongoose.Types.ObjectId(userId)
         }
     } : {}
 
-    const videos = await Video.paginate(matchUser, options);
+    if (search) {
+
+        query.$or = [
+            { title: { $regex: search, $options: 'i' } },
+            { description: { $regex: search, $options: 'i' } },
+            { "owner.username": { $regex: search ,$options : 'i' } }
+        ];
+    }
+
+    const videos = await Video.paginate(query, options);
 
     return res
         .status(200)
@@ -92,40 +101,112 @@ const getVideoById = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Invalid video Id");
     }
 
-    // update the view count
-    await Video.findByIdAndUpdate(videoId, { $inc: { views: 1 } });
 
     const video = await Video.aggregate([
         {
-            $match: {
-                _id: new mongoose.Types.ObjectId(videoId),
-            },
+            "$match": {
+                "_id": new mongoose.Types.ObjectId(videoId)
+            }
         },
         {
-            $lookup: {
-                from: "users",
-                localField: "owner",
-                foreignField: "_id",
-                as: "ownerDetails",
-            },
+            "$lookup": {
+                "from": "users",
+                "localField": "owner",
+                "foreignField": "_id",
+                "as": "ownerDetails"
+            }
         },
         {
-            $addFields: {
-                owner: {
-                    $arrayElemAt: ["$ownerDetails", 0],
-                },
-            },
+            "$addFields": {
+                "owner": { "$arrayElemAt": ["$ownerDetails", 0] }
+            }
         },
         {
-            $project: {
+            "$lookup": {
+                "from": "comments",
+                "localField": "_id",
+                "foreignField": "video",
+                "as": "comments"
+            }
+        },
+        {
+            "$lookup": {
+                "from": "likes",
+                "localField": "_id",
+                "foreignField": "video",
+                "as": "likes"
+            }
+        },
+        {
+            "$addFields": {
+                "likesCount": { "$size": "$likes" },
+                "liked": {
+                    "$cond": {
+                        "if": { "$gt": [{ "$size": "$likes" }, 0] },
+                        "then": {
+                            "$eq": [
+                                {
+                                    "$size":
+                                    {
+                                        "$filter":
+                                        {
+                                            "input": "$likes",
+                                            "cond": {
+                                                "$eq": ["$$this.likedBy", new mongoose.Types.ObjectId(req.user?._id)]
+                                            }
+                                        }
+                                    }
+                                },
+                                1
+                            ]
+                        },
+                        "else": false
+                    }
+                }
+            }
+        },
+        {
+            "$lookup": {
+                "from": "subscriptions",
+                "localField": "owner._id",
+                "foreignField": "channel",
+                "as": "subscribers"
+            }
+        },
+        {
+            "$addFields": {
+                "isUserSubscriberOfChannel": {
+                    "$cond": {
+                        "if": { "$gt": [{ "$size": "$subscribers" }, 0] },
+                        "then": {
+                            "$gt": [
+                                {
+                                    "$size": {
+                                        "$filter": {
+                                            "input": "$subscribers",
+                                            "cond": { "$eq": ["$$this.subscriber", new mongoose.Types.ObjectId(req.user?._id)] }
+                                        }
+                                    }
+                                },
+                                0
+                            ]
+                        },
+                        "else": false
+                    }
+                }
+            }
+        },
+        {
+            "$project": {
                 "owner.password": 0,
-                "owner.username": 0,
                 "owner.coverImage": 0,
                 "owner.watchHistory": 0,
-                ownerDetails: 0,
-            },
-        },
-    ]);
+                "ownerDetails": 0,
+                "likes": 0,
+            }
+        }
+    ]
+    );
 
 
     if (!video) {
