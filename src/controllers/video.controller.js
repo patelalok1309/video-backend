@@ -9,8 +9,10 @@ import {
     uploadVideoOnCloudinary,
 } from "../utils/cloudinary.js";
 
+
+
 const getAllVideos = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 10, sortBy, sortType = 'desc', userId, search } = req.query;
+    const { page = 1, limit = 10, sortBy = 'createdAt', sortType = 'asc', userId, search = '' } = req.query;
 
     const sort = {};
 
@@ -22,29 +24,59 @@ const getAllVideos = asyncHandler(async (req, res) => {
         page,
         limit,
         sort,
-        populate: "owner",
     }
 
-    const query = userId ? {
-        owner: {
-            $eq: new mongoose.Types.ObjectId(userId)
+    const pipeline = [
+        {
+            "$match": {
+                "isPublished": true
+            }
+        },
+        {
+            "$lookup": {
+                "from": "users",
+                "localField": "owner",
+                "foreignField": "_id",
+                "as": "channelDetails"
+            }
+        },
+        {
+            "$addFields": {
+                "owner": { "$arrayElemAt": ["$channelDetails", 0] }
+            }
+        },
+        {
+            "$match": {
+                "$or": [
+                    {
+                        "title": { "$regex": `${search}`, "$options": "i" }
+                    },
+                    {
+                        "description": { "$regex": `${search}`, "$options": "i" }
+                    },
+                    {
+                        "owner.username": { "$regex": `${search}`, "$options": "i" }
+                    },
+                    {
+                        "owner.fullName": { "$regex": `${search}`, "$options": "i" }
+                    }
+                ]
+            }
+        },
+        {
+            "$project": {
+                "channelDetails": 0,
+                "owner.password": 0,
+                "owner.refreshToken": 0
+            }
         }
-    } : {}
+    ];
 
-    if (search) {
-
-        query.$or = [
-            { title: { $regex: search, $options: 'i' } },
-            { description: { $regex: search, $options: 'i' } },
-            { "owner.username": { $regex: search ,$options : 'i' } }
-        ];
-    }
-
-    const videos = await Video.paginate(query, options);
-
+    const videoAggregate = await Video.aggregate(pipeline);
     return res
         .status(200)
-        .json(new ApiResponse(200, videos, "All videos fetched successfulyy"));
+        .json(new ApiResponse(200, videoAggregate, "All videos fetched successfulyy"));
+
 });
 
 // Publish new video
@@ -230,8 +262,8 @@ const updateVideo = asyncHandler(async (req, res) => {
 
     const video = await Video.findById(videoId);
 
-    if (video.thumbnail) {
-        const res = await unlinkFromCloudinary(video.thumbnail);
+    if (video?.thumbnail) {
+        const res = await unlinkFromCloudinary(video?.thumbnail);
         if (!res) {
             throw new ApiError(500, "Something went wrong while unlinking old data");
         }

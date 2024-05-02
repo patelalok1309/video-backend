@@ -163,12 +163,14 @@ const loginUser = asyncHandler(async (req, res) => {
     const options = {
         httpOnly: true,
         secure: true,
+        sameSite: 'none',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     }
 
     return res
         .status(200)
-        .cookie("accessToken", accessToken , options)
-        .cookie("refreshToken", refreshToken , options)
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", refreshToken, options)
         .json(
             new ApiResponse(
                 200,
@@ -217,7 +219,7 @@ const changeCurrentUserPassword = asyncHandler(async (req, res) => {
     const { oldPassword, newPassword, confirmPassword } = req.body;
 
     if (newPassword !== confirmPassword) {
-        return res.status(401).json(new ApiError(401,"Password confirmation failed check password and confirm password"));
+        return res.status(401).json(new ApiError(401, "Password confirmation failed check password and confirm password"));
     }
 
     const user = await User.findById(req.user?._id)
@@ -239,6 +241,13 @@ const changeCurrentUserPassword = asyncHandler(async (req, res) => {
 
 // Get current user 
 const getCurrentUser = asyncHandler(async (req, res) => {
+
+    if (!req.user) {
+        return res
+            .status(401)
+            .json(new ApiError(401, "Unauthorized request"))
+    }
+
     return res
         .status(200)
         .json(new ApiResponse(200, req.user, "current user fetched successfully"));
@@ -250,7 +259,7 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
     const { fullName, email } = req.body
 
     if (!fullName || !email) {
-        throw new ApiError(400, "All fields are required");
+        return res.status(400).json(new ApiError(400,"All fields are required"));
     }
 
     const user = await User.findByIdAndUpdate(
@@ -265,7 +274,6 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
             new: true,
         }
     ).select("-password");
-
 
     return res
         .status(200)
@@ -383,6 +391,42 @@ const getUserChannnelProfile = asyncHandler(async (req, res) => {
                 as: "subscribedTo"
             }
         },
+        {
+            $lookup: {
+                from: "videos",
+                localField: "_id",
+                foreignField: "owner",
+                as: "videos",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "users",
+                            localField: "owner",
+                            foreignField: "_id",
+                            as: "channelDetails"
+                        }
+                    },
+                    {
+                        $addFields: {
+                            owner: {
+                                $let: {
+                                    vars: {
+                                        firstDetail: { $arrayElemAt: ["$channelDetails", 0] }
+                                    },
+                                    in: "$$firstDetail"
+                                }
+                            }
+                        }
+                    },
+                    {
+                        $project: {
+                            channelDetails: 0,
+                            "owner.password": 0,
+                        }
+                    }
+                ]
+            }
+        },
 
         // Stage 4 : Count the subscribers and channels and create new fields for them
         {
@@ -399,6 +443,9 @@ const getUserChannnelProfile = asyncHandler(async (req, res) => {
                         then: true,
                         else: false
                     }
+                },
+                videosCount: {
+                    $size: "$videos"
                 }
             }
         },
@@ -413,7 +460,9 @@ const getUserChannnelProfile = asyncHandler(async (req, res) => {
                 isSubscribed: 1,
                 avatar: 1,
                 coverImage: 1,
-                email: 1
+                email: 1,
+                videosCount: 1,
+                videos: 1,
             }
         }
     ])
@@ -478,6 +527,8 @@ const getWatchHistory = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, user[0].watchHistory, "watch history fetched successfully"));
 
 })
+
+
 
 
 export {

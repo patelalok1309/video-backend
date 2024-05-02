@@ -117,15 +117,34 @@ const getChannelVideos = asyncHandler(async (req, res) => {
     // TODO: Get all the videos uploaded by the channel
     const { channelId } = req.params;
 
-    const pipeline = [
-        {
-            $match: {
-                owner: new mongoose.Types.ObjectId(channelId)
-            }
-        }
-    ]
+    // const pipeline = [
+    //     {
+    //         $match: {
+    //             owner: new mongoose.Types.ObjectId(channelId)
+    //         }
+    //     },
+    //     {
+    //         $lookup: {
+    //             from: 'users',
+    //             localField: 'owner',
+    //             foreignField: '_id',
+    //             as: 'channel'
+    //         }
+    //     },
+    //     {
+    //         $project: {
+    //             "channel.password": 0
+    //         }
+    //     }
+    // ]
 
-    const videos = await Video.aggregate(pipeline);
+    // const videos = await Video.aggregate(pipeline);
+
+    const videos = await Video.find({ owner: new mongoose.Types.ObjectId(channelId) })
+        .populate('owner')
+        .select('-onwer.password -refreshToken')
+
+
 
     return res.status(200).json(new ApiResponse(200, videos, "videos fetched successfully"));
 })
