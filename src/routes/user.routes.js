@@ -1,6 +1,8 @@
 import { Router } from "express";
 import {
+    addToWatchHistory,
     changeCurrentUserPassword,
+    clearWatchHistory,
     getCurrentUser,
     getUserChannnelProfile,
     getWatchHistory,
@@ -37,7 +39,8 @@ router.route('/login').post(loginUser);
 router.route('/current-user').get(verifyJWT, getCurrentUser);
 router.route("/c/:username").get(verifyJWT, getUserChannnelProfile);
 router.route('/history').get(verifyJWT, getWatchHistory);
-
+router.route('/history').delete(verifyJWT, clearWatchHistory);
+router.route('/history/:videoId').post(verifyJWT, addToWatchHistory)
 // POST 
 router.route('/logout').post(verifyJWT, logOutUser);
 router.route('/refresh-token').post(refreshAccessToken);

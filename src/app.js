@@ -6,7 +6,10 @@ const app = express();
 
 // Middlewares
 app.use(cors({
-    origin: 'http://localhost:5173',
+    origin: [
+        'http://localhost:5173',
+        'https://videotube-frontend-1.onrender.com'
+    ],
     credentials: true
 }));
 // app.options('*', cors(cors({
