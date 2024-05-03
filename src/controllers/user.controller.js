@@ -4,7 +4,8 @@ import { unlinkFromCloudinary, uploadOnCloudinary } from '../utils/cloudinary.js
 import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import jwt from 'jsonwebtoken'
-import mongoose from 'mongoose';
+import mongoose, { isValidObjectId } from 'mongoose';
+import { Video } from '../models/video.model.js';
 
 
 // generate access and refresh tokens 
@@ -88,7 +89,6 @@ const registerUser = asyncHandler(async (req, res) => {
     if (existedUser) {
         console.log("user exists");
         return res.status(400).json(new ApiError(400, "user with email or username already exists"));
-        throw new ApiError(409, "User with email or username already exists")
     }
 
     let avatarLocalPath;
@@ -97,7 +97,7 @@ const registerUser = asyncHandler(async (req, res) => {
     }
 
     if (!avatarLocalPath) {
-        throw new ApiError(400, "Avatar file is required")
+        return res.status(200).json(new ApiError(400, "Avatar file is required"))
     }
 
     let coverImageLocalPath;
@@ -218,8 +218,10 @@ const changeCurrentUserPassword = asyncHandler(async (req, res) => {
 
     const { oldPassword, newPassword, confirmPassword } = req.body;
 
+    console.log({ oldPassword, newPassword, confirmPassword });
+
     if (newPassword !== confirmPassword) {
-        return res.status(401).json(new ApiError(401, "Password confirmation failed check password and confirm password"));
+        return res.status(400).json(new ApiError(400, "Password confirmation failed check password and confirm password"));
     }
 
     const user = await User.findById(req.user?._id)
@@ -227,7 +229,7 @@ const changeCurrentUserPassword = asyncHandler(async (req, res) => {
     const isPasswordCorrect = await user.isPasswordCorrect(oldPassword)
 
     if (!isPasswordCorrect) {
-        throw new ApiError(401, "Invalid old password")
+        return res.status(401).json(new ApiError(401, "incorrent password ! 😒"));
     }
 
     user.password = newPassword;
@@ -235,7 +237,7 @@ const changeCurrentUserPassword = asyncHandler(async (req, res) => {
     await user.save({ validateBeforeSave: false });
 
     return res.status(200)
-        .json(new ApiResponse(200, {}, "Password changed successfully"))
+        .json(new ApiResponse(200, {}, "Password changed successfully ! 😎"))
 })
 
 
@@ -259,7 +261,7 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
     const { fullName, email } = req.body
 
     if (!fullName || !email) {
-        return res.status(400).json(new ApiError(400,"All fields are required"));
+        return res.status(400).json(new ApiError(400, "All fields are required"));
     }
 
     const user = await User.findByIdAndUpdate(
@@ -287,7 +289,7 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
     const avatarLocalPath = req.file?.path;
 
     if (!avatarLocalPath) {
-        throw new ApiError(400, "Avatar file is missing")
+        return res.status(500).json(new ApiError(500, "something went wrong ! try again"));
     }
 
     const user = await User.findById(req.user?._id);
@@ -528,8 +530,47 @@ const getWatchHistory = asyncHandler(async (req, res) => {
 
 })
 
+const addToWatchHistory = asyncHandler(async (req, res) => {
+    const { videoId } = req.params;
+
+    if (!videoId || !isValidObjectId(videoId)) {
+        return res.status(400).json(new ApiError(400, "video id is null or invalid"));
+    }
+
+    const video = await Video.findById(videoId);
+
+    if (!video) {
+        return res.status(404).json(new ApiError(404, "video not found"));
+    }
+
+    const updatedWatchHistory = await User.findByIdAndUpdate(
+        req.user?._id,
+        { $push: { watchHistory: { $each: [video], $slice: -10 } } },
+        { new: true }
+    )
+
+    return res.status(200).json(new ApiResponse(200, updatedWatchHistory, "videos pushed to watch history"))
+})
 
 
+const clearWatchHistory = asyncHandler(async (req, res) => {
+
+    const response = await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set: {
+                watchHistory: []
+            }
+        },
+        { new: true }
+    )
+
+    if (!clearWatchHistory) {
+        return res.status(500).json(new ApiError(500, "something went wrong while deleting history"));
+    }
+
+    return res.status(200).json(new ApiResponse(200, {}, "History deleted successfully"))
+})
 
 export {
     registerUser,
@@ -543,5 +584,7 @@ export {
     updateCoverImage,
     getUserChannnelProfile,
     getWatchHistory,
+    addToWatchHistory,
+    clearWatchHistory,
 };
 
