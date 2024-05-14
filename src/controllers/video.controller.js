@@ -12,7 +12,7 @@ import {
 
 
 const getAllVideos = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 10, sortBy = 'createdAt', sortType = 'asc', userId, search = '' } = req.query;
+    const { page = 1, limit = 10, sortBy = 'createdAt', sortType = 'desc', userId, search = '' } = req.query;
 
     const sort = {};
 
