@@ -12,10 +12,7 @@ app.use(cors({
     ],
     credentials: true
 }));
-// app.options('*', cors(cors({
-//     origin : true,
-//     credentials : true
-// })))
+
 app.use(express.json({ limit: '16kb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"))
@@ -46,5 +43,120 @@ app.use('/api/v1/likes', likeRouter)
 app.use('/api/v1/comments', commentRouter)
 app.use('/api/v1/dashboard', dashboardRouter)
 app.use('/api/v1/tweet', tweetRouter)
+
+app.get('/api/v2/temp', async (req, res) => {
+    dummyData = [
+        {
+            titleClockLabel: "1st · 4:30",
+            titleLogo: "pkg:/images/LA_logo.png",
+            titleDetailsLabel: "2nd 10, AKP 35",
+            LeftBackgroundLogo: "pkg:/images/LA_logo.png",
+            RightBackgroundLogo: "pkg:/images/CIA_logo.png",
+            LeftTeamLogo: "pkg:/images/LA_logo.png",
+            LeftTeamNameLabel: "LAR",
+            LeftTeamScoreLabel: "888",
+            RightTeamLogo: "pkg:/images/CIA_logo.png",
+            RightTeamNameLabel: "CIN",
+            RightTeamScoreLabel: "888",
+            spreadStatsA: {
+                primaryOddsRate: "-2.5",
+                secondaryOddsRate: "-118",
+            },
+            spreadStatsB: {
+                primaryOddsRate: "-2.5",
+                secondaryOddsRate: "-118",
+            },
+            moneyStatsA: {
+                primaryOddsRate: "-120",
+            },
+            moneyStatsB: {
+                primaryOddsRate: "-118"
+            },
+            TotalStatsA: {
+                primaryOddsRate: "A 843.8",
+                secondaryOddsRate: "-118",
+            },
+            TotalStatsB: {
+                primaryOddsRate: "U 888.8",
+                secondaryOddsRate: "-118",
+            }
+        },
+        {
+            titleClockLabel: "2nd · 4:30",
+            titleLogo: "pkg:/images/LA_logo.png",
+            titleDetailsLabel: "2nd 10, AKP 35",
+            LeftBackgroundLogo: "pkg:/images/LA_logo.png",
+            RightBackgroundLogo: "pkg:/images/CIA_logo.png",
+            LeftTeamLogo: "pkg:/images/LA_logo.png",
+            LeftTeamNameLabel: "LAR",
+            LeftTeamScoreLabel: "888",
+            RightTeamLogo: "pkg:/images/CIA_logo.png",
+            RightTeamNameLabel: "CIN",
+            RightTeamScoreLabel: "888",
+            spreadStatsA: {
+                primaryOddsRate: "-2.5",
+                secondaryOddsRate: "-118",
+            },
+            spreadStatsB: {
+                primaryOddsRate: "-2.5",
+                secondaryOddsRate: "-118",
+            },
+            moneyStatsA: {
+                primaryOddsRate: "-120",
+            },
+            moneyStatsB: {
+                primaryOddsRate: "-118"
+            },
+            TotalStatsA: {
+                primaryOddsRate: "A 843.8",
+                secondaryOddsRate: "-118",
+            },
+            TotalStatsB: {
+                primaryOddsRate: "U 888.8",
+                secondaryOddsRate: "-118",
+            }
+        },   
+        {
+            titleClockLabel: "3rd · 4:30",
+            titleLogo: "pkg:/images/LA_logo.png",
+            titleDetailsLabel: "2nd 10, AKP 35",
+            LeftBackgroundLogo: "pkg:/images/LA_logo.png",
+            RightBackgroundLogo: "pkg:/images/CIA_logo.png",
+            LeftTeamLogo: "pkg:/images/LA_logo.png",
+            LeftTeamNameLabel: "LAR",
+            LeftTeamScoreLabel: "888",
+            RightTeamLogo: "pkg:/images/CIA_logo.png",
+            RightTeamNameLabel: "CIN",
+            RightTeamScoreLabel: "888",
+            spreadStatsA: {
+                primaryOddsRate: "-2.5",
+                secondaryOddsRate: "-118",
+            },
+            spreadStatsB: {
+                primaryOddsRate: "-2.5",
+                secondaryOddsRate: "-118",
+            },
+            moneyStatsA: {
+                primaryOddsRate: "-120",
+            },
+            moneyStatsB: {
+                primaryOddsRate: "-118"
+            },
+            TotalStatsA: {
+                primaryOddsRate: "A 843.8",
+                secondaryOddsRate: "-118",
+            },
+            TotalStatsB: {
+                primaryOddsRate: "U 888.8",
+                secondaryOddsRate: "-118",
+            }
+        },
+    ]
+    return res.status(200)
+        .json(new ApiResponse(
+            200,
+            dummyData
+        ))
+})
 
 export { app }

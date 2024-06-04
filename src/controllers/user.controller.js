@@ -105,7 +105,6 @@ const registerUser = asyncHandler(async (req, res) => {
         coverImageLocalPath = req.files.coverImage[0].path
     }
 
-
     const avatar = await uploadOnCloudinary(avatarLocalPath)
     const coverImage = await uploadOnCloudinary(coverImageLocalPath)
 
@@ -129,9 +128,7 @@ const registerUser = asyncHandler(async (req, res) => {
     if (!createdUser) {
         return res.status(500).json(new ApiError(500, "Something went wrong while registering the user"));
     }
-
     return res.status(201).json(new ApiResponse(200, createdUser, "User registered Successfully"))
-
 })
 
 
@@ -182,7 +179,6 @@ const loginUser = asyncHandler(async (req, res) => {
                 },
             )
         )
-
 })
 
 
@@ -202,7 +198,8 @@ const logOutUser = asyncHandler(async (req, res) => {
 
     const options = {
         httpOnly: true,
-        secure: true
+        secure: true,
+        sameSite: 'None'
     }
 
     return res
