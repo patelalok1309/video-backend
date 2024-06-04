@@ -45,7 +45,7 @@ app.use('/api/v1/dashboard', dashboardRouter)
 app.use('/api/v1/tweet', tweetRouter)
 
 app.get('/api/v2/temp', async (req, res) => {
-    dummyData = [
+    const dummyData = [
         {
             titleClockLabel: "1st · 4:30",
             titleLogo: "pkg:/images/LA_logo.png",
