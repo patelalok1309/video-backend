@@ -4,8 +4,8 @@ dotenv.config({ path: './src/.env' });
 import connectDB from "./db/index.js";
 import { app } from './app.js'
 
-app.get('/', (req ,res) => {
-    return res.json({ msg : "Healthy"})
+app.get('/', (req, res) => {
+    return res.json({ msg: "Healthy" })
 })
 
 
